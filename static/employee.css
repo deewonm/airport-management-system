@@ -1,0 +1,158 @@
+/* =========================================================
+   CrewOps – employee page (employee_flights.html)
+   ========================================================= */
+
+.emp { flex: 1; display: flex; flex-direction: column; gap: 24px; }
+
+.role-pill {
+  background: #F08A24;
+  color: #111827;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 8px 16px;
+  border-radius: 999px;
+}
+
+/* ---------- Two columns ---------- */
+.layout { flex: 1; display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch; }
+.side { flex: 0 0 350px; max-width: 100%; display: flex; flex-direction: column; gap: 24px; }
+.main-card { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.roster { flex: 1; }
+/* A long roster scrolls inside its card instead of stretching the page */
+.roster > div:last-child { max-height: 440px; overflow-y: auto; padding-right: 4px; }
+
+/* ---------- Next flight card ---------- */
+.flight-card {
+  background: #14325C;
+  color: #FFFFFF;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #B9C7DB; }
+.flight-no { font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700; line-height: 1; }
+.flight-sub { font-size: 15px; color: #DCE4EF; margin-top: 4px; }
+.times {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+}
+.times > div { display: flex; flex-direction: column; gap: 2px; }
+.times .label { font-size: 12px; color: #B9C7DB; }
+.times .value { font-size: 18px; font-weight: 700; }
+.countdown { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
+
+/* ---------- My status ---------- */
+.status-card { display: flex; flex-direction: column; gap: 10px; }
+.status-form { display: flex; flex-wrap: wrap; gap: 8px; }
+.late-group { display: inline-flex; gap: 6px; }
+.late-group input { width: 64px; min-height: 34px; padding: 0 8px; font-size: 13px; border-radius: 8px; }
+
+/* ---------- Tabs ---------- */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  background: #EEF1F4;
+  padding: 4px;
+  border-radius: 12px;
+  align-self: flex-start;
+}
+.tab {
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: #4B5563;
+  font: 500 14px Inter, sans-serif;
+  cursor: pointer;
+}
+.tab:hover { background: rgba(255, 255, 255, 0.6); color: #111827; }
+.tab.active {
+  background: #FFFFFF;
+  color: #111827;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.12);
+}
+
+.panel { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: #4B5563; }
+.legend > span { display: flex; align-items: center; gap: 6px; }
+.legend .dot { width: 10px; height: 10px; }
+
+.empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 48px 16px; }
+
+/* ---------- Team members ---------- */
+.members { flex: 1; display: flex; flex-direction: column; gap: 28px; }
+.member {
+  flex: 1;
+  min-height: 140px;
+  max-height: 190px;               /* grow to fill space, but never into giant boxes */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 24px;
+  border: 1px solid #E2E6EB;
+  border-radius: 14px;
+}
+.member-you { background: #FFF7EE; border-color: #F3D3A1; }
+.member-sick { background: #FFF6F6; border-color: #F5C2C2; }
+
+.avatar {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #E3ECF7;
+  color: #14325C;
+}
+.avatar-leader { background: #FDE8D2; color: #8A4B00; }
+.avatar-you { background: #14325C; color: #FFFFFF; }
+
+.member-info { flex: 1 1 220px; display: flex; flex-direction: column; gap: 8px; }
+.member-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 18px; font-weight: 600; }
+.pill { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
+.pill-navy { background: #14325C; color: #FFFFFF; }
+.pill-blue { background: #E3ECF7; color: #14325C; }
+
+.skills { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.skills-label { font-size: 12px; color: #4B5563; margin-right: 2px; }
+.chip { font-size: 12px; font-weight: 600; background: #EEF1F4; color: #374151; padding: 3px 8px; border-radius: 6px; }
+.chip-covering { background: #14325C; color: #FFFFFF; }
+
+.member-status { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.note { font-size: 12px; color: #4B5563; }
+
+/* ---------- Tables ---------- */
+.row-current td { background: #EAF0F8; font-weight: 700; }
+
+/* ---------- Phone: next flight, status, team, then roster ---------- */
+@media (max-width: 760px) {
+  .side { display: contents; }
+  .flight-card { order: 1; flex: 1 1 100%; }
+  .status-card { order: 2; flex: 1 1 100%; }
+  .main-card { order: 3; flex: 1 1 100%; }
+  .side > .card { order: 4; flex: 1 1 100%; }
+  .tabs { align-self: stretch; }
+  .tab { flex: 1; padding: 0 8px; }
+  .members { gap: 12px; }
+  .member { flex: none; min-height: auto; max-height: none; padding: 14px 16px; gap: 14px; }
+  .roster > div:last-child { max-height: none; }
+  .avatar { width: 44px; height: 44px; font-size: 15px; }
+  .member-name { font-size: 16px; }
+  .member-status { align-items: flex-start; }
+}

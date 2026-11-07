@@ -1,0 +1,164 @@
+/* =========================================================
+   CrewOps – supervisor page (supervisor.html)
+   ========================================================= */
+
+.sup { flex: 1; display: flex; flex-direction: column; gap: 24px; }
+
+.page-head { align-items: flex-end; }
+.page-head p { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.role-tag {
+  font-size: 12px;
+  font-weight: 600;
+  background: #F08A24;
+  color: #111827;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+/* ---------- Stat cards ---------- */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.stat {
+  background: #FFFFFF;
+  border: 1px solid #E2E6EB;
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stat-label { font-size: 13px; font-weight: 500; color: #4B5563; }
+.stat-value { font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; line-height: 1.1; }
+.stat-red { background: #FDE8E8; border-color: #F5C2C2; }
+.stat-red .stat-label, .stat-red .stat-value { color: #A11D1D; }
+.stat-red .stat-label { font-weight: 600; }
+.stat-amber { background: #FFF1DB; border-color: #F3D3A1; }
+.stat-amber .stat-label, .stat-amber .stat-value { color: #8A4B00; }
+.stat-amber .stat-label { font-weight: 600; }
+
+/* ---------- Approval banner ---------- */
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #EAF0F8;
+  border: 1px solid #C8D6EA;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #14325C;
+}
+
+/* ---------- Main area ---------- */
+.layout { flex: 1; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.side { flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 24px; }
+.card h2 { font-size: 19px; margin-bottom: 12px; }
+.card .row-between h2 { margin-bottom: 0; }
+
+/* ---------- Flights table ---------- */
+.flights { flex: 999 1 640px; min-width: 0; padding: 18px 6px 6px; }
+.flights h2 { margin: 0 12px 12px; }
+tr.row-unassigned td { background: #FFF6F6; }
+
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.actions form { display: flex; align-items: center; gap: 6px; }
+
+/* "Edit" pop-out for status and delay */
+.edit { position: relative; }
+.edit summary {
+  list-style: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #14325C;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+.edit summary::-webkit-details-marker { display: none; }
+.edit summary:hover { background: #EEF1F4; }
+.edit[open] summary { background: #EEF1F4; }
+.edit-form {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 5;
+  background: #FFFFFF;
+  border: 1px solid #E2E6EB;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.12);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 200px;
+}
+.actions .edit-form { display: flex; flex-direction: column; align-items: stretch; }
+.edit-form label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4B5563;
+}
+
+/* ---------- Cover requests ---------- */
+.card-alert { border-color: #F5C2C2; }
+.request {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 0;
+  border-bottom: 1px solid #EEF1F4;
+  font-size: 14px;
+}
+.request:first-of-type { padding-top: 0; }
+.request:last-child { border-bottom: none; padding-bottom: 0; }
+.request-actions { display: flex; gap: 8px; margin-top: 2px; }
+
+/* ---------- Teams ---------- */
+.teams { display: flex; flex-direction: column; gap: 10px; }
+.team {
+  border: 1px solid #EEF1F4;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.team-alert { border-color: #F5C2C2; background: #FFF6F6; }
+.team-members { display: flex; flex-wrap: wrap; gap: 6px; }
+.member-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #EEF1F4;
+  color: #374151;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+/* ---------- Unassigned staff ---------- */
+.staff-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid #EEF1F4;
+}
+.staff-row:first-of-type { padding-top: 0; }
+.staff-row:last-of-type { border-bottom: none; padding-bottom: 0; }
+.move-form { display: flex; gap: 8px; }
+.move-form select { flex: 1; min-height: 38px; font-size: 14px; border-radius: 8px; }
+.btn-move { min-height: 38px; padding: 0 14px; font-size: 13px; border-radius: 8px; }
+
+/* ---------- Smaller screens ---------- */
+@media (max-width: 760px) {
+  .page-head form, .page-head .btn { width: 100%; }
+  .edit-form { right: auto; left: 0; }
+}

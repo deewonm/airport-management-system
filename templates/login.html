@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block head_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}" />
+{% endblock %}
+
+{% block body_class %}light-bar{% endblock %}
+
+{% block main_content %}
+<div class="auth">
+    <section class="auth-card">
+        <h1>Log in</h1>
+        <p class="muted">Use your airport code and 9-digit employee ID.</p>
+
+        <form class="login" action="" method="post" novalidate>
+            {{ form.hidden_tag() }}
+            {% for field in [form.airport_code, form.employee_id, form.password] %}
+                <div class="field">
+                    {{ field.label }}
+                    {{ field() }}
+                    {% for error in field.errors %}
+                        <p class="error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+            {{ form.submit(class_="btn btn-navy btn-block") }}
+        </form>
+
+        <p class="muted center">No account yet? <a href="{{ url_for('register') }}">Register</a></p>
+    </section>
+</div>
+{% endblock %}

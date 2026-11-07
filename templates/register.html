@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block head_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}" />
+{% endblock %}
+
+{% block body_class %}light-bar{% endblock %}
+
+{% block main_content %}
+<div class="auth">
+    <section class="auth-card">
+        <h1>Create an account</h1>
+        <p class="muted">Supervisors have an employee ID ending in 400.</p>
+
+        <form class="register" action="" method="post" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="field-row">
+                {% for field in [form.f_name, form.s_name] %}
+                    <div class="field">
+                        {{ field.label }}
+                        {{ field() }}
+                        {% for error in field.errors %}
+                            <p class="error">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+
+            {% for field in [form.airport_code, form.employee_id, form.role] %}
+                <div class="field">
+                    {{ field.label }}
+                    {{ field() }}
+                    {% for error in field.errors %}
+                        <p class="error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+
+            <fieldset class="skills-field">
+                <legend>Skills</legend>
+                {{ form.skills(class_="skill-options") }}
+            </fieldset>
+
+            {% for field in [form.password, form.confirm_password] %}
+                <div class="field">
+                    {{ field.label }}
+                    {{ field() }}
+                    {% for error in field.errors %}
+                        <p class="error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+
+            {{ form.submit(class_="btn btn-navy btn-block") }}
+        </form>
+
+        <p class="muted center">Already registered? <a href="{{ url_for('login') }}">Log in</a></p>
+    </section>
+</div>
+{% endblock %}

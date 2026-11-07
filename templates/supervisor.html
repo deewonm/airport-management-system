@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+
+{% block head_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='supervisor.css') }}" />
+{% endblock %}
+
+{% block main_content %}
+
+{% set flight_tones = {"on_time": "green", "delayed": "amber", "arrived": "navy", "departed": "grey", "cancelled": "red"} %}
+{% set crew_tones = {"ready": "green", "delayed": "amber", "sick": "red"} %}
+
+<div class="sup">
+
+  <!-- Title + main button -->
+  <div class="page-head">
+    <div>
+      <h1>Today's operations</h1>
+      <p class="muted">
+        <span class="role-tag">{{ employee.role|replace("_", " ")|title }}</span>
+        {{ employee.firstName }} {{ employee.lastName }} ·
+        {% if shift_start %}
+          Shifts {{ shift_start }} – {{ shift_end }}
+        {% else %}
+          No shifts today
+        {% endif %}
+      </p>
+    </div>
+    <form method="post" action="{{ url_for('generate_teams') }}"
+          onsubmit="return confirm('Rebuild today\'s crews and reassign open flights?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-orange">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>
+        Generate teams &amp; assign
+      </button>
+    </form>
+  </div>
+
+  <!-- Overview cards -->
+  <div class="stats">
+    <div class="stat">
+      <span class="stat-label">Flights today</span>
+      <span class="stat-value">{{ flights_total }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Teams on duty</span>
+      <span class="stat-value">{{ teams_total }}</span>
+    </div>
+    <div class="stat {% if unassigned_total %}stat-red{% endif %}">
+      <span class="stat-label">Unassigned flights</span>
+      <span class="stat-value">{{ unassigned_total }}</span>
+    </div>
+    <div class="stat {% if delays_total %}stat-amber{% endif %}">
+      <span class="stat-label">Delays</span>
+      <span class="stat-value">{{ delays_total }}</span>
+    </div>
+  </div>
+
+  <!-- Waiting for approval -->
+  {% if pending_total %}
+    <div class="banner">
+      <span><strong>{{ pending_total }} flight assignment{% if pending_total != 1 %}s{% endif %}</strong> waiting for your approval</span>
+      <form method="post" action="{{ url_for('approve_all') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-navy">Approve all</button>
+      </form>
+    </div>
+  {% endif %}
+
+  <div class="layout">
+
+    <!-- Flights table -->
+    <section class="card flights">
+      <h2>Flights</h2>
+      <div class="table-wrap">
+        <table>
+          <tr>
+            <th>FLIGHT</th>
+            <th>FROM</th>
+            <th>ARR</th>
+            <th>DEP</th>
+            <th>STAND</th>
+            <th>TEAM</th>
+            <th>STATUS</th>
+            <th>ACTIONS</th>
+          </tr>
+          {% for flight in flights %}
+            <tr class="{% if not flight.teamID and flight.status != 'cancelled' %}row-unassigned{% elif flight.status in ('departed', 'cancelled') %}row-done{% endif %}">
+              <td class="bold">{{ flight.flightNumber }}</td>
+              <td>{{ flight.origin }}</td>
+              <td>{{ flight.scheduledArrival }}</td>
+              <td>{{ flight.scheduledDeparture }}</td>
+              <td>{{ flight.stand or "TBC" }}</td>
+              <td>
+                {% if flight.team_name %}
+                  {{ flight.team_name }}
+                {% else %}
+                  <span class="text-red bold">None</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="badges">
+                  {% if not flight.teamID and flight.status != "cancelled" %}
+                    <span class="badge red">Unassigned</span>
+                  {% else %}
+                    <span class="badge {{ flight_tones.get(flight.status, 'blue') }}">{{ flight.status|replace("_", " ")|title }}</span>
+                    {% if flight.teamID and not flight.approved and flight.status not in ("departed", "cancelled") %}
+                      <span class="badge blue">Pending</span>
+                    {% endif %}
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <div class="actions">
+                  {% if flight.teamID and not flight.approved and flight.status not in ("departed", "cancelled") %}
+                    <form method="post" action="{{ url_for('approve_flight', flight_id=flight.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="btn btn-sm btn-navy">Approve</button>
+                    </form>
+                  {% endif %}
+
+                  {% if flight.status not in ("departed", "cancelled") %}
+                    <form method="post" action="{{ url_for('reassign_flight', flight_id=flight.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <label class="sr-only" for="team-{{ flight.id }}">Team for {{ flight.flightNumber }}</label>
+                      <select id="team-{{ flight.id }}" name="team_id" class="select-sm">
+                        <option value="">No team</option>
+                        {% for team in teams %}
+                          <option value="{{ team.id }}" {% if team.id == flight.teamID %}selected{% endif %}>{{ team.name }}</option>
+                        {% endfor %}
+                      </select>
+                      {% if flight.teamID %}
+                        <button type="submit" class="btn btn-sm btn-outline">Reassign</button>
+                      {% else %}
+                        <button type="submit" class="btn btn-sm btn-red">Assign team</button>
+                      {% endif %}
+                    </form>
+                  {% endif %}
+
+                  <!-- Change status or add a delay -->
+                  <details class="edit">
+                    <summary>Edit</summary>
+                    <form method="post" action="{{ url_for('update_flight', flight_id=flight.id) }}" class="edit-form">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <label>
+                        Status
+                        <select name="status" class="select-sm">
+                          {% for status in flight_statuses %}
+                            <option value="{{ status }}" {% if status == flight.status %}selected{% endif %}>{{ status|replace("_", " ")|title }}</option>
+                          {% endfor %}
+                        </select>
+                      </label>
+                      <label>
+                        Delay (min)
+                        <input type="number" name="delay_minutes" min="0" max="600" step="5" value="0" class="input-sm">
+                      </label>
+                      <button type="submit" class="btn btn-sm btn-navy">Save</button>
+                    </form>
+                  </details>
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="8" class="muted">No flights today.</td></tr>
+          {% endfor %}
+        </table>
+      </div>
+    </section>
+
+    <!-- Right column -->
+    <aside class="side">
+
+      <!-- Sick cover requests -->
+      {% if cover_requests %}
+        <section class="card card-alert">
+          <h2>Cover needed</h2>
+          {% for req in cover_requests %}
+            <div class="request">
+              <p>
+                <strong>{{ req.sick_name }}</strong> ({{ req.team_name or "no team" }}) called in sick{% if req.skill %}, was covering <strong>{{ req.skill }}</strong>{% endif %}.
+              </p>
+              {% if req.proposed_name %}
+                <p class="muted small">Suggested cover: <strong class="ink">{{ req.proposed_name }}</strong></p>
+              {% else %}
+                <p class="muted small">No free cover with that skill. Move someone in from Unassigned staff.</p>
+              {% endif %}
+              <div class="request-actions">
+                {% if req.proposed_id %}
+                  <form method="post" action="{{ url_for('decide_cover', request_id=req.id, decision='approve') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-navy">Approve cover</button>
+                  </form>
+                {% endif %}
+                <form method="post" action="{{ url_for('decide_cover', request_id=req.id, decision='reject') }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline">{% if req.proposed_id %}Reject{% else %}Dismiss{% endif %}</button>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </section>
+      {% endif %}
+
+      <!-- Notifications -->
+      {% if notifications %}
+        <section class="card">
+          <div class="row-between">
+            <h2>Notifications</h2>
+            <form method="post" action="{{ url_for('read_notifications') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="{{ url_for('supervisor') }}">
+              <button type="submit" class="link-btn">Mark all read</button>
+            </form>
+          </div>
+          <div class="notices">
+            {% for note in notifications %}
+              <div class="notice">
+                <span>{{ note.message }}</span>
+                <span class="row-sub">{{ note.time }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      <!-- Teams -->
+      <section class="card">
+        <h2>Teams</h2>
+        <div class="teams">
+          {% for team in teams %}
+            {% if team.members %}
+              <div class="team {% if team.short or team.missing_skills %}team-alert{% endif %}">
+                <div class="row-between">
+                  <span class="row-name">{{ team.name }}</span>
+                  {% if team.short %}
+                    <span class="badge red">Short {{ team.short }}</span>
+                  {% elif team.missing_skills %}
+                    <span class="badge amber">Missing skill</span>
+                  {% else %}
+                    <span class="badge green">Ready</span>
+                  {% endif %}
+                </div>
+                <span class="row-sub">
+                  Leader: {{ team.leader or "none" }}{% if team.shift %} · Shift {{ team.shift }}{% endif %}
+                </span>
+                <div class="team-members">
+                  {% for member in team.members %}
+                    <span class="member-chip {{ crew_tones.get(member.status, '') }}" title="{{ member.status|title }}">
+                      <span class="dot"></span>{{ member.name.split()[0] }}{% if member.covering %} · {{ member.covering }}{% endif %}
+                    </span>
+                  {% endfor %}
+                </div>
+                {% if team.missing_skills %}
+                  <span class="row-sub text-red">Missing: {{ team.missing_skills|join(", ") }}</span>
+                {% endif %}
+              </div>
+            {% endif %}
+          {% else %}
+            <p class="muted small">No teams yet. Press Generate.</p>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- Staff not in a team -->
+      <section class="card">
+        <h2>Unassigned staff</h2>
+        {% for person in unassigned_staff %}
+          <div class="staff-row">
+            <div class="row-between">
+              <span class="row-name">{{ person.name }}</span>
+              <span class="row-sub">{{ person.skills|join(" · ") or "No skills" }}</span>
+            </div>
+            <form method="post" action="{{ url_for('move_staff', user_id=person.id) }}" class="move-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <label class="sr-only" for="move-{{ person.id }}">Move {{ person.name }} to team</label>
+              <select id="move-{{ person.id }}" name="team_id">
+                {% for team in teams %}
+                  <option value="{{ team.id }}">{{ team.name }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-navy btn-move">Move</button>
+            </form>
+          </div>
+        {% else %}
+          <p class="muted small">Everyone is in a team.</p>
+        {% endfor %}
+      </section>
+
+      <!-- Everyone on shift -->
+      <section class="card roster">
+        <div>
+          <h2>Staff today</h2>
+          <p class="muted small">{{ roster_total }} on shift · {{ roster_available }} available · {{ roster_sick }} sick</p>
+        </div>
+        <div>
+          {% for person in roster %}
+            <div class="list-row">
+              <div class="stack">
+                <span class="row-name">{{ person.name }}</span>
+                <span class="row-sub">{{ person.role|replace("_", " ")|title }}</span>
+              </div>
+              {% if person.status == "sick" %}
+                <span class="badge red"><span class="dot"></span>Sick</span>
+              {% elif person.status == "delayed" %}
+                <span class="badge amber"><span class="dot"></span>Late</span>
+              {% else %}
+                <span class="badge green"><span class="dot"></span>Available</span>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+    </aside>
+  </div>
+</div>
+
+{% endblock %}

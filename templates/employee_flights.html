@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block head_content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='employee.css') }}" />
+{% endblock %}
+
+{% block body_class %}light-bar{% endblock %}
+
+{% block main_content %}
+
+{# Badge colour for each flight status and crew status #}
+{% set flight_tones = {"on_time": "green", "delayed": "amber", "arrived": "navy", "departed": "grey", "cancelled": "red"} %}
+{% set crew_tones = {"ready": "green", "delayed": "amber", "sick": "red"} %}
+
+<div class="emp">
+
+  <!-- Greeting and role -->
+  <div class="page-head">
+    <div>
+      <h1>Welcome, {{ user.firstName }} {{ user.lastName }}</h1>
+      <p class="muted">
+        {{ team.name }} ·
+        {% if shift_start %}
+          Shift {{ shift_start }} – {{ shift_end }}
+        {% else %}
+          No shift today
+        {% endif %}
+      </p>
+    </div>
+    <span class="role-pill">Your role: {{ user.role|replace("_", " ")|title }}</span>
+  </div>
+
+  <div class="layout">
+
+    <!-- LEFT COLUMN -->
+    <div class="side">
+
+      <!-- Next flight -->
+      <section class="flight-card">
+        <div class="row-between">
+          <span class="eyebrow">NEXT FLIGHT</span>
+          {% if next_flight %}
+            <span class="badge {{ flight_tones.get(next_flight.status, 'blue') }}">{{ next_flight.status|replace("_", " ")|title }}</span>
+          {% endif %}
+        </div>
+
+        {% if next_flight %}
+          <div>
+            <div class="flight-no">{{ next_flight.flightNumber }}</div>
+            <div class="flight-sub">{{ next_flight.airline }} · from {{ next_flight.origin }}</div>
+          </div>
+          <div class="times">
+            <div><span class="label">Arrives</span><span class="value">{{ next_flight.scheduledArrival }}</span></div>
+            <div><span class="label">Departs</span><span class="value">{{ next_flight.scheduledDeparture }}</span></div>
+            <div><span class="label">Stand</span><span class="value">{{ next_flight.stand or "TBC" }}</span></div>
+          </div>
+          <div class="countdown">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F08A24" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+            {{ next_flight.countdown }}
+          </div>
+        {% else %}
+          <p class="flight-sub">No more flights today.</p>
+        {% endif %}
+      </section>
+
+      <!-- My status: ready / late / sick -->
+      {% if my_status %}
+        <section class="card status-card">
+          <div class="row-between">
+            <h2>My status</h2>
+            <span class="badge badge-lg {{ crew_tones.get(my_status.status, 'blue') }}"><span class="dot"></span>{{ my_status.status|title }}</span>
+          </div>
+          {% if my_status.note %}
+            <p class="muted small">{{ my_status.note }}</p>
+          {% endif %}
+          <form method="post" action="{{ url_for('report_status') }}" class="status-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" name="status" value="ready" class="btn btn-sm btn-outline">I'm here</button>
+            <span class="late-group">
+              <label class="sr-only" for="minutes">Minutes late</label>
+              <input type="number" id="minutes" name="minutes" min="5" max="240" step="5" value="15">
+              <button type="submit" name="status" value="delayed" class="btn btn-sm btn-amber">Running late</button>
+            </span>
+            <button type="submit" name="status" value="sick" class="btn btn-sm btn-red-soft"
+                    onclick="return confirm('Call in sick for today?');">Call in sick</button>
+          </form>
+        </section>
+      {% endif %}
+
+      <!-- Notifications -->
+      {% if notifications %}
+        <section class="card">
+          <div class="row-between">
+            <h2>Notifications</h2>
+            <form method="post" action="{{ url_for('read_notifications') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="{{ url_for('employee_flights') }}">
+              <button type="submit" class="link-btn">Mark all read</button>
+            </form>
+          </div>
+          <div class="notices">
+            {% for note in notifications %}
+              <div class="notice">
+                <span>{{ note.message }}</span>
+                <span class="row-sub">{{ note.time }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      <!-- Today's roster -->
+      <section class="card roster">
+        <div>
+          <h2>Today's roster</h2>
+          <p class="muted small">{{ roster_total }} on shift · {{ roster_available }} available · {{ roster_sick }} sick</p>
+        </div>
+        <div>
+          {% for person in roster %}
+            <div class="list-row">
+              <div class="stack">
+                <span class="row-name">{{ person.name }}</span>
+                <span class="row-sub">{{ person.role|replace("_", " ")|title }}</span>
+              </div>
+              {% if person.status == "sick" %}
+                <span class="badge red"><span class="dot"></span>Sick</span>
+              {% elif person.status == "delayed" %}
+                <span class="badge amber"><span class="dot"></span>Late</span>
+              {% else %}
+                <span class="badge green"><span class="dot"></span>Available</span>
+              {% endif %}
+            </div>
+          {% else %}
+            <p class="muted small">Nobody is rostered today.</p>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <section class="card main-card">
+
+      <!-- Tab buttons -->
+      <div class="tabs">
+        <button type="button" class="tab active" onclick="showTab('team', this)">My Team</button>
+        <button type="button" class="tab" onclick="showTab('today', this)">Today</button>
+        <button type="button" class="tab" onclick="showTab('all', this)">All Flights</button>
+      </div>
+
+      <!-- My Team -->
+      <div class="panel" id="team">
+        {% if team.members %}
+          <div class="row-between wrap">
+            <span class="muted"><strong class="ink">{{ team_ready }} of {{ team_size }}</strong> team members ready</span>
+            <div class="legend">
+              <span><span class="dot dot-green"></span>Ready</span>
+              <span><span class="dot dot-amber"></span>Delayed</span>
+              <span><span class="dot dot-red"></span>Sick</span>
+            </div>
+          </div>
+
+          <div class="members">
+            {% for member in team.members %}
+              <div class="member {% if member.is_me %}member-you{% elif member.status == 'sick' %}member-sick{% endif %}">
+                <span class="avatar {% if member.is_me %}avatar-you{% elif member.is_leader %}avatar-leader{% endif %}">{{ member.name.split()[0][0] }}{{ member.name.split()[-1][0] }}</span>
+
+                <div class="member-info">
+                  <div class="member-name">
+                    <span>{{ member.name }}{% if member.is_me %} (you){% endif %}</span>
+                    {% if member.is_leader %}
+                      <span class="pill pill-navy">Team leader</span>
+                    {% else %}
+                      <span class="pill pill-blue">{{ member.role|replace("_", " ")|capitalize }}</span>
+                    {% endif %}
+                  </div>
+                  <div class="skills">
+                    <span class="skills-label">Skills:</span>
+                    {% for skill in member.skills %}
+                      <span class="chip {% if skill == member.covering %}chip-covering{% endif %}">{{ skill }}{% if skill == member.covering %} (covering){% endif %}</span>
+                    {% else %}
+                      <span class="skills-label">none listed</span>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="member-status">
+                  <span class="badge badge-lg {{ crew_tones.get(member.status, 'blue') }}"><span class="dot"></span>{{ member.status|title }}</span>
+                  {% if member.status_note %}
+                    <span class="note">{{ member.status_note }}</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty">
+            <h2>You're not in a team yet</h2>
+            <p class="muted">Your supervisor builds today's crews. Check back once teams have been generated.</p>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Today (my team's flights) -->
+      <div class="panel" id="today" hidden>
+        <div class="table-wrap">
+          <table>
+            <tr>
+              <th>TIME</th>
+              <th>FLIGHT</th>
+              <th>FROM</th>
+              <th>DEPARTS</th>
+              <th>STAND</th>
+              <th>STATUS</th>
+            </tr>
+            {% for flight in my_flights %}
+              <tr class="{% if next_flight and flight.id == next_flight.id %}row-current{% elif flight.status in ('departed', 'cancelled') %}row-done{% endif %}">
+                <td>{{ flight.scheduledArrival }}</td>
+                <td class="bold">{{ flight.flightNumber }}</td>
+                <td>{{ flight.origin }}</td>
+                <td>{{ flight.scheduledDeparture }}</td>
+                <td>{{ flight.stand or "TBC" }}</td>
+                <td>
+                  {% if next_flight and flight.id == next_flight.id %}
+                    <span class="badge green">Next</span>
+                  {% else %}
+                    <span class="badge {{ flight_tones.get(flight.status, 'blue') }}">{{ flight.status|replace("_", " ")|title }}</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr><td colspan="6" class="muted">No flights for your team today.</td></tr>
+            {% endfor %}
+          </table>
+        </div>
+      </div>
+
+      <!-- All flights -->
+      <div class="panel" id="all" hidden>
+        <div class="table-wrap">
+          <table>
+            <tr>
+              <th>ARR</th>
+              <th>FLIGHT</th>
+              <th>FROM</th>
+              <th>STAND</th>
+              <th>TEAM</th>
+              <th>STATUS</th>
+            </tr>
+            {% for flight in all_flights %}
+              <tr class="{% if next_flight and flight.id == next_flight.id %}row-current{% elif flight.status in ('departed', 'cancelled') %}row-done{% endif %}">
+                <td>{{ flight.scheduledArrival }}</td>
+                <td class="bold">{{ flight.flightNumber }}</td>
+                <td>{{ flight.origin }}</td>
+                <td>{{ flight.stand or "TBC" }}</td>
+                <td>
+                  {% if not flight.team_name %}
+                    <span class="text-red bold">Unassigned</span>
+                  {% elif flight.teamID == user.teamID %}
+                    <span class="text-navy bold">{{ flight.team_name }} (yours)</span>
+                  {% else %}
+                    {{ flight.team_name }}
+                  {% endif %}
+                </td>
+                <td>
+                  {% if not flight.team_name and flight.status != "cancelled" %}
+                    <span class="badge red">Needs team</span>
+                  {% else %}
+                    <span class="badge {{ flight_tones.get(flight.status, 'blue') }}">{{ flight.status|replace("_", " ")|title }}</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </table>
+        </div>
+      </div>
+
+    </section>
+  </div>
+</div>
+
+<!-- Shows the chosen tab and hides the other two -->
+<script>
+  function showTab(name, button) {
+    document.getElementById('team').hidden = true;
+    document.getElementById('today').hidden = true;
+    document.getElementById('all').hidden = true;
+    document.getElementById(name).hidden = false;
+
+    var tabs = document.querySelectorAll('.tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.remove('active');
+    }
+    button.classList.add('active');
+  }
+</script>
+
+{% endblock %}

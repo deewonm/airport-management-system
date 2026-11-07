@@ -1,0 +1,74 @@
+/* =========================================================
+   CrewOps – home, login and register pages
+   ========================================================= */
+
+.auth {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 460px;
+  background: #FFFFFF;
+  border: 1px solid #E2E6EB;
+  border-radius: 16px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.auth-card h1 { font-size: 28px; font-weight: 600; }
+
+.auth-card form { display: flex; flex-direction: column; gap: 16px; }
+
+.field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.field label { font-size: 14px; font-weight: 600; }
+.field-row { display: flex; gap: 12px; }
+
+.error {
+  font-size: 13px;
+  font-weight: 500;
+  color: #A11D1D;
+}
+
+/* Skills checkboxes on the register page */
+.skills-field {
+  border: 1px solid #E2E6EB;
+  border-radius: 12px;
+  padding: 12px 16px 14px;
+  margin: 0;
+}
+.skills-field legend { font-size: 14px; font-weight: 600; padding: 0 6px; }
+.skill-options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+.skill-options li { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.skill-options input { width: 18px; height: 18px; accent-color: #14325C; margin: 0; }
+.skill-options label { font-weight: 500; }
+
+/* Home page */
+.home-card { text-align: center; align-items: stretch; }
+.home-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: #14325C;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+}
+
+@media (max-width: 520px) {
+  .auth-card { padding: 24px 20px; }
+  .field-row { flex-direction: column; }
+}
