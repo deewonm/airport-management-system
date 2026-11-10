@@ -1,8 +1,19 @@
 from flask import g
 import os
+import shutil
 import sqlite3
 
-DATABASE = os.path.join(os.path.abspath(os.path.dirname(__file__)), "app.db")
+PROJECT_DB = os.path.join(os.path.abspath(os.path.dirname(__file__)), "app.db")
+
+# On Vercel the project folder is read-only, so SQLite can't save changes there.
+# Copy the database into /tmp (the only writable folder) and use that copy.
+# Note: Vercel can throw /tmp away at any time, so changes there are temporary.
+if os.environ.get("VERCEL"):
+    DATABASE = "/tmp/app.db"
+    if not os.path.exists(DATABASE) and os.path.exists(PROJECT_DB):
+        shutil.copyfile(PROJECT_DB, DATABASE)
+else:
+    DATABASE = PROJECT_DB
 
 def get_db():
     if "db" not in g:

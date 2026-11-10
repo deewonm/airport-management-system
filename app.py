@@ -5,8 +5,9 @@ from functools import wraps
 from itertools import combinations
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+import os
+
 from flask import Flask, render_template, session, redirect, url_for, g, request, flash
-from flask_session import Session
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -17,10 +18,16 @@ from airgroundcrewsys import AirportError, Flight, GroundCrew, RampAgent, TeamLe
 
 app = Flask(__name__)
 app.teardown_appcontext(close_db)
-app.config["SECRET_KEY"] = "6062-corkathon"
+# Sessions are kept in a signed cookie in the browser (Flask's default), not in files
+# on the server. Vercel starts a fresh copy of the app for many requests, so files
+# saved on one request are gone by the next, which broke logins and the CSRF token.
+# Set SECRET_KEY in Vercel (Settings > Environment Variables) to keep it out of the code.
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "6062-corkathon")
 app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_TYPE"] = "filesystem"
-Session(app)
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = bool(os.environ.get("VERCEL"))   # HTTPS-only cookie when live
+app.config["WTF_CSRF_TIME_LIMIT"] = None    # the token lasts as long as the session
 CSRFProtect(app)          # every POST form must send a csrf_token
 ensure_schema()           # adds the flights.approved column to an older app.db
 
